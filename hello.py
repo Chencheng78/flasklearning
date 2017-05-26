@@ -1,10 +1,10 @@
-from flask import Flask, request, make_response, redirect, render_template
+from flask import Flask, request, make_response, redirect, render_template, session, url_for
 from flask_script import Manager
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from datetime import datetime
-from flask_wtf import Form
-from wtforms import StringField,SubmitField
+from flask_wtf import FlaskForm as Form
+from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 
 
@@ -24,18 +24,22 @@ def index():
 	
 	return redirect('http://www.baidu.com')
 	'''
-	#user_agent = request.headers.get('User-Agent')
-	#return '<h1>Hello World!</h1><br><p>your browser is %s</p>' % user_agent
+	user_agent = request.headers.get('User-Agent')
+	# return '<h1>Hello World!</h1><br><p>your browser is %s</p>' % user_agent
 	name = None
 	form = NameFrom()
 	if form.validate_on_submit():
-		name = form.name.data
-		form.name.data = ''
-	return render_template('index.html', current_time=datetime.utcnow(), form=form, name=name)
+		# name = form.name.data
+		session['name'] = form.name.data
+		# form.name.data = ''
+		return redirect(url_for('index'))
+	return render_template('index.html', current_time=datetime.utcnow(),
+							form=form, name=session.get('name'), user_agent=user_agent)
+
 
 @app.route('/user/<name>')
 def user(name):
-	#return '<h1>Hello %s!</h1>' % name
+	# return '<h1>Hello %s!</h1>' % name
 	return render_template('user.html', name=name)
 
 

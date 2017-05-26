@@ -11,5 +11,6 @@
 
 <p align="right">The local time is {{ moment(current_time).format('LLLL') }}.</p>
 <p align="right">That was {{ moment(current_time).fromNow(refresh=True) }}</p>
+<p align="right">User-agent: {{ user_agent }}</p>
 
 {% endblock %}
