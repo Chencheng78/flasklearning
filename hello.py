@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response, redirect, render_template, session, url_for
+from flask import Flask, request, make_response, redirect, render_template, session, url_for, flash
 from flask_script import Manager
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
@@ -26,10 +26,13 @@ def index():
 	'''
 	user_agent = request.headers.get('User-Agent')
 	# return '<h1>Hello World!</h1><br><p>your browser is %s</p>' % user_agent
-	name = None
+	# name = None
 	form = NameFrom()
 	if form.validate_on_submit():
 		# name = form.name.data
+		old_name = session.get('name')
+		if old_name is not None and old_name != form.name.data:
+			flash('Looks like you\'ve changed your name!')
 		session['name'] = form.name.data
 		# form.name.data = ''
 		return redirect(url_for('index'))
