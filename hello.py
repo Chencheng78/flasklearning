@@ -1,5 +1,5 @@
 from flask import Flask, request, make_response, redirect, render_template, session, url_for, flash
-from flask_script import Manager
+from flask_script import Manager, Shell
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from datetime import datetime
@@ -8,6 +8,7 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 import os
 from flask_sqlalchemy import SQLAlchemy
+from flask_mail import Mail, Message
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -15,6 +16,7 @@ app = Flask(__name__)
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
+# Database settings
 app.config['SECRET_KEY'] = 'hard to guess string'
 app.config['SQLALCHEMY_DATABASE_URI'] =\
 	'sqlite:///' + os.path.join(basedir, 'data.sqlite')
@@ -22,6 +24,21 @@ app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+# Mail settings
+app.config['MAIL_SERVER'] = 'smtp.163.com'
+app.config['MAIL_PORT'] = 25
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USERNAME'] = 'geniuscc7@163.com'
+app.config['MAIL_PASSWORD'] = 'tensaiccalex1988'
+app.config['FLASKY_MAIL_SUBJECT_PREFIX'] = '[Flasky]'
+app.config['FLASKY_MAIL_SENDER'] = 'Flasky Admin <geniuscc7@163.com>'
+app.config['FLASKY_ADMIN'] = 'geniuscc7@163.com'
+mail = Mail(app)
+
+
+class NameFrom(Form):
+	name = StringField('what\'s your name?', validators=[DataRequired()])
+	submit = SubmitField('Submit')
 
 
 class Role(db.Model):
@@ -44,6 +61,13 @@ class User(db.Model):
 		return '<User %r>' % self.username
 
 
+def send_email(to, subject, template, **kwargs):
+	msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + ' ' + subject, sender=app.config['FLASKY_MAIL_SENDER'], recipients=[to])
+	msg.body = render_template(template + '.txt', **kwargs)
+	msg.html = render_template(template + '.html', **kwargs)
+	mail.send(msg)
+
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
 	'''
@@ -63,6 +87,8 @@ def index():
 			user = User(username=form.name.data)
 			db.session.add(user)
 			session['known'] = False
+			if app.config['FLASKY_ADMIN']:
+				send_email(app.config['FLASKY_ADMIN'], 'New User', 'mail/new_user', user=user)
 		else:
 			session['known'] = True
 		session['name'] = form.name.data
@@ -88,9 +114,10 @@ def internal_server_error(e):
 	return render_template('500.html'), 500
 
 
-class NameFrom(Form):
-	name = StringField('what\'s your name?', validators=[DataRequired()])
-	submit = SubmitField('Submit')
+def make_shell_context():
+	return dict(app=app, db=db, User=User, Role=Role)
+manager.add_command("shell", Shell(make_context=make_shell_context))
+
 
 
 if __name__ == '__main__':
